@@ -21,7 +21,16 @@ Sistema completo de gestión para máquinas expendedoras desarrollado con React 
 
 ## URL de la aplicación
 
-🌐 **[https://juaniesquercia.github.io/nexus-vending-management/](https://juaniesquercia.github.io/nexus-vending-management/)**
+🌐 **[https://juaniesquercia.github.io/sistema-nexus-vending/](https://juaniesquercia.github.io/sistema-nexus-vending/)**
+
+## Configuración de la Base de Datos
+
+Para que la aplicación funcione correctamente, necesitas configurar las variables de entorno de Supabase en GitHub:
+
+1. Ve a **Settings** → **Secrets and variables** → **Actions**
+2. Agrega estos secrets:
+   - `VITE_SUPABASE_URL`: Tu URL de Supabase
+   - `VITE_SUPABASE_ANON_KEY`: Tu clave anónima de Supabase
 
 ---
 
