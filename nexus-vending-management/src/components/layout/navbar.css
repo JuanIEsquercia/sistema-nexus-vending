@@ -1,0 +1,78 @@
+/* ============================================
+   ESTILOS NAVBAR CON LOGO NEXUS
+   ============================================ */
+
+.navbar-custom {
+  background: #ffffff !important;
+  border-bottom: 2px solid #e8f4f8;
+  padding: 0.75rem 0;
+  transition: all 0.3s ease;
+}
+
+.navbar-brand-custom {
+  text-decoration: none !important;
+  transition: all 0.3s ease;
+  padding: 0.5rem 0.5rem;
+  border-radius: 8px;
+}
+
+.navbar-brand-custom:hover {
+  transform: scale(1.05);
+  background-color: rgba(0, 102, 204, 0.05);
+}
+
+.navbar-brand-custom img {
+  transition: all 0.3s ease;
+  filter: drop-shadow(0 2px 4px rgba(0, 102, 204, 0.1));
+}
+
+.navbar-brand-custom:hover img {
+  filter: drop-shadow(0 2px 8px rgba(0, 102, 204, 0.2));
+}
+
+.nav-link-custom {
+  color: #666 !important;
+  font-weight: 500;
+  padding: 0.5rem 1rem !important;
+  margin: 0 0.25rem;
+  border-radius: 6px;
+  transition: all 0.3s ease;
+}
+
+.nav-link-custom:hover {
+  color: #0066cc !important;
+  background-color: #f8f9fa;
+  transform: translateY(-1px);
+}
+
+.nav-link-custom.active {
+  color: #0066cc !important;
+  background-color: #e8f4f8;
+  font-weight: 600;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .navbar-brand-custom img {
+    height: 36px !important;
+  }
+  
+  .nav-link-custom {
+    padding: 0.75rem 1rem !important;
+    margin: 0.25rem 0;
+  }
+}
+
+@media (max-width: 576px) {
+  .navbar-brand-custom img {
+    height: 32px !important;
+  }
+  
+  .navbar-custom {
+    padding: 0.5rem 0;
+  }
+  
+  .navbar-brand-custom {
+    padding: 0.25rem 0.5rem;
+  }
+} 
