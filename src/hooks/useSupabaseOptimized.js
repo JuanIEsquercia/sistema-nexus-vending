@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 
 // Hook base optimizado
@@ -34,6 +34,7 @@ export function useProductosOptimized() {
 
   const cargarProductos = useCallback(async (force = false) => {
     const now = Date.now();
+    // Usar ref para evitar dependencias circulares
     if (!force && lastFetch && (now - lastFetch) < CACHE_DURATION && productos.length > 0) {
       return productos;
     }
@@ -51,7 +52,7 @@ export function useProductosOptimized() {
     setProductos(data || []);
     setLastFetch(now);
     return data;
-  }, [productos, lastFetch, executeAsync]);
+  }, [lastFetch, executeAsync, CACHE_DURATION]);
 
   const crearProducto = useCallback(async (producto) => {
     const nuevo = await executeAsync(async () => {
@@ -97,9 +98,10 @@ export function useProductosOptimized() {
     setProductos(prev => prev.filter(p => p.id !== id));
   }, [executeAsync]);
 
+  // Solo cargar una vez al montar
   useEffect(() => {
     cargarProductos();
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const productosMemorized = useMemo(() => productos, [productos]);
 
@@ -142,7 +144,7 @@ export function useProveedoresOptimized() {
     setProveedores(data || []);
     setLastFetch(now);
     return data;
-  }, [proveedores, lastFetch, executeAsync]);
+  }, [lastFetch, executeAsync, CACHE_DURATION]);
 
   const crearProveedor = useCallback(async (proveedor) => {
     const nuevo = await executeAsync(async () => {
@@ -188,9 +190,10 @@ export function useProveedoresOptimized() {
     setProveedores(prev => prev.filter(p => p.id !== id));
   }, [executeAsync]);
 
+  // Solo cargar una vez al montar
   useEffect(() => {
     cargarProveedores();
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   return {
     proveedores: useMemo(() => proveedores, [proveedores]),
@@ -300,7 +303,7 @@ export function useComprasOptimized(pageSize = 10) {
 
   useEffect(() => {
     cargarCompras(0, true);
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   return {
     compras: useMemo(() => compras, [compras]),
@@ -370,7 +373,7 @@ export function useStockOptimized(pageSize = 20) {
 
   useEffect(() => {
     cargarStock(0, true);
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   return {
     stock: useMemo(() => stock, [stock]),
@@ -454,7 +457,7 @@ export function useCargasMaquinaOptimized(pageSize = 15) {
 
   useEffect(() => {
     cargarCargasMaquina(0, true);
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   return {
     cargas: useMemo(() => cargas, [cargas]),
