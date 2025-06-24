@@ -23,20 +23,23 @@ export function useSupabaseOptimized() {
   return { loading, error, executeAsync, setError };
 }
 
-// Hook optimizado para productos con caché simple
-export function useProductosOptimized() {
+// Hook SIMPLE para productos (para usar en formularios - carga todos)
+export function useProductosSimple() {
   const [productos, setProductos] = useState([]);
   const [lastFetch, setLastFetch] = useState(null);
   const { loading, error, executeAsync, setError } = useSupabaseOptimized();
+  const mountedRef = useRef(true);
 
-  // Caché por 5 minutos
-  const CACHE_DURATION = 5 * 60 * 1000;
+  const CACHE_DURATION = 5 * 60 * 1000; // 5 minutos
 
   const cargarProductos = useCallback(async (force = false) => {
+    if (!mountedRef.current) return;
+    
     const now = Date.now();
-    // Usar ref para evitar dependencias circulares
-    if (!force && lastFetch && (now - lastFetch) < CACHE_DURATION && productos.length > 0) {
-      return productos;
+    
+    // Verificar caché sin dependencias circulares
+    if (!force && lastFetch && (now - lastFetch) < CACHE_DURATION) {
+      return;
     }
 
     const data = await executeAsync(async () => {
@@ -49,10 +52,83 @@ export function useProductosOptimized() {
       return data;
     });
 
-    setProductos(data || []);
-    setLastFetch(now);
+    if (mountedRef.current) {
+      setProductos(data || []);
+      setLastFetch(now);
+    }
+  }, [executeAsync, lastFetch]);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    cargarProductos();
+    
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []); // Solo ejecutar una vez al montar
+
+  return {
+    productos,
+    loading,
+    error,
+    setError,
+    recargar: () => cargarProductos(true)
+  };
+}
+
+// Hook PAGINADO para productos (para mostrar listas grandes)
+export function useProductosOptimized(pageSize = 25) {
+  const [productos, setProductos] = useState([]);
+  const [currentPage, setCurrentPage] = useState(0);
+  const [totalCount, setTotalCount] = useState(0);
+  const [hasMore, setHasMore] = useState(false);
+  const { loading, error, executeAsync, setError } = useSupabaseOptimized();
+  const mountedRef = useRef(true);
+  const initializedRef = useRef(false);
+
+  const cargarProductos = useCallback(async (page = 0, reset = false) => {
+    if (!mountedRef.current) return;
+    
+    const data = await executeAsync(async () => {
+      // Contar total
+      const { count } = await supabase
+        .from('productos')
+        .select('*', { count: 'exact', head: true });
+
+      // Obtener productos paginados
+      const { data, error } = await supabase
+        .from('productos')
+        .select('id, nombre, multiplicador_precio')
+        .order('nombre')
+        .range(page * pageSize, (page + 1) * pageSize - 1);
+      
+      if (error) throw error;
+
+      if (mountedRef.current) {
+        setTotalCount(count || 0);
+        setHasMore((page + 1) * pageSize < count);
+      }
+      
+      return data || [];
+    });
+
+    if (mountedRef.current) {
+      if (reset || page === 0) {
+        setProductos(data);
+      } else {
+        setProductos(prev => [...prev, ...data]);
+      }
+      
+      setCurrentPage(page);
+    }
     return data;
-  }, [lastFetch, executeAsync, CACHE_DURATION]);
+  }, [pageSize, executeAsync]);
+
+  const cargarMasProductos = useCallback(() => {
+    if (!loading && hasMore && mountedRef.current) {
+      cargarProductos(currentPage + 1, false);
+    }
+  }, [loading, hasMore, currentPage, cargarProductos]);
 
   const crearProducto = useCallback(async (producto) => {
     const nuevo = await executeAsync(async () => {
@@ -65,9 +141,12 @@ export function useProductosOptimized() {
       return data[0];
     });
 
-    setProductos(prev => [...prev, nuevo]);
+    // Recargar primera página
+    if (mountedRef.current) {
+      await cargarProductos(0, true);
+    }
     return nuevo;
-  }, [executeAsync]);
+  }, [executeAsync, cargarProductos]);
 
   const actualizarProducto = useCallback(async (id, producto) => {
     const actualizado = await executeAsync(async () => {
@@ -81,7 +160,9 @@ export function useProductosOptimized() {
       return data[0];
     });
 
-    setProductos(prev => prev.map(p => p.id === id ? actualizado : p));
+    if (mountedRef.current) {
+      setProductos(prev => prev.map(p => p.id === id ? actualizado : p));
+    }
     return actualizado;
   }, [executeAsync]);
 
@@ -95,40 +176,58 @@ export function useProductosOptimized() {
       if (error) throw error;
     });
 
-    setProductos(prev => prev.filter(p => p.id !== id));
-  }, [executeAsync]);
+    // Recargar página actual
+    if (mountedRef.current) {
+      await cargarProductos(0, true);
+    }
+  }, [executeAsync, cargarProductos]);
 
-  // Solo cargar una vez al montar
+  // Cargar solo una vez al montar el componente
   useEffect(() => {
-    cargarProductos();
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
-
-  const productosMemorized = useMemo(() => productos, [productos]);
+    mountedRef.current = true;
+    
+    if (!initializedRef.current) {
+      initializedRef.current = true;
+      cargarProductos(0, true);
+    }
+    
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []); // Lista de dependencias vacía - solo ejecutar una vez
 
   return {
-    productos: productosMemorized,
+    productos: useMemo(() => productos, [productos]),
     loading,
     error,
     setError,
+    currentPage,
+    totalCount,
+    hasMore,
     crearProducto,
     actualizarProducto,
     eliminarProducto,
-    recargar: () => cargarProductos(true)
+    cargarMas: cargarMasProductos,
+    recargar: () => cargarProductos(0, true)
   };
 }
 
-// Hook optimizado para proveedores con caché
-export function useProveedoresOptimized() {
+// Hook SIMPLE para proveedores (para formularios)
+export function useProveedoresSimple() {
   const [proveedores, setProveedores] = useState([]);
   const [lastFetch, setLastFetch] = useState(null);
   const { loading, error, executeAsync, setError } = useSupabaseOptimized();
+  const mountedRef = useRef(true);
 
   const CACHE_DURATION = 5 * 60 * 1000;
 
   const cargarProveedores = useCallback(async (force = false) => {
+    if (!mountedRef.current) return;
+    
     const now = Date.now();
-    if (!force && lastFetch && (now - lastFetch) < CACHE_DURATION && proveedores.length > 0) {
-      return proveedores;
+    
+    if (!force && lastFetch && (now - lastFetch) < CACHE_DURATION) {
+      return;
     }
 
     const data = await executeAsync(async () => {
@@ -141,10 +240,81 @@ export function useProveedoresOptimized() {
       return data;
     });
 
-    setProveedores(data || []);
-    setLastFetch(now);
+    if (mountedRef.current) {
+      setProveedores(data || []);
+      setLastFetch(now);
+    }
+  }, [executeAsync, lastFetch]);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    cargarProveedores();
+    
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []); // Solo ejecutar una vez
+
+  return {
+    proveedores,
+    loading,
+    error,
+    setError,
+    recargar: () => cargarProveedores(true)
+  };
+}
+
+// Hook PAGINADO para proveedores
+export function useProveedoresOptimized(pageSize = 30) {
+  const [proveedores, setProveedores] = useState([]);
+  const [currentPage, setCurrentPage] = useState(0);
+  const [totalCount, setTotalCount] = useState(0);
+  const [hasMore, setHasMore] = useState(false);
+  const { loading, error, executeAsync, setError } = useSupabaseOptimized();
+  const mountedRef = useRef(true);
+  const initializedRef = useRef(false);
+
+  const cargarProveedores = useCallback(async (page = 0, reset = false) => {
+    if (!mountedRef.current) return;
+    
+    const data = await executeAsync(async () => {
+      const { count } = await supabase
+        .from('proveedores')
+        .select('*', { count: 'exact', head: true });
+
+      const { data, error } = await supabase
+        .from('proveedores')
+        .select('id, nombre, telefono')
+        .order('nombre')
+        .range(page * pageSize, (page + 1) * pageSize - 1);
+      
+      if (error) throw error;
+
+      if (mountedRef.current) {
+        setTotalCount(count || 0);
+        setHasMore((page + 1) * pageSize < count);
+      }
+      
+      return data || [];
+    });
+
+    if (mountedRef.current) {
+      if (reset || page === 0) {
+        setProveedores(data);
+      } else {
+        setProveedores(prev => [...prev, ...data]);
+      }
+      
+      setCurrentPage(page);
+    }
     return data;
-  }, [lastFetch, executeAsync, CACHE_DURATION]);
+  }, [pageSize, executeAsync]);
+
+  const cargarMasProveedores = useCallback(() => {
+    if (!loading && hasMore && mountedRef.current) {
+      cargarProveedores(currentPage + 1, false);
+    }
+  }, [loading, hasMore, currentPage, cargarProveedores]);
 
   const crearProveedor = useCallback(async (proveedor) => {
     const nuevo = await executeAsync(async () => {
@@ -157,9 +327,11 @@ export function useProveedoresOptimized() {
       return data[0];
     });
 
-    setProveedores(prev => [...prev, nuevo]);
+    if (mountedRef.current) {
+      await cargarProveedores(0, true);
+    }
     return nuevo;
-  }, [executeAsync]);
+  }, [executeAsync, cargarProveedores]);
 
   const actualizarProveedor = useCallback(async (id, proveedor) => {
     const actualizado = await executeAsync(async () => {
@@ -173,7 +345,9 @@ export function useProveedoresOptimized() {
       return data[0];
     });
 
-    setProveedores(prev => prev.map(p => p.id === id ? actualizado : p));
+    if (mountedRef.current) {
+      setProveedores(prev => prev.map(p => p.id === id ? actualizado : p));
+    }
     return actualizado;
   }, [executeAsync]);
 
@@ -187,23 +361,37 @@ export function useProveedoresOptimized() {
       if (error) throw error;
     });
 
-    setProveedores(prev => prev.filter(p => p.id !== id));
-  }, [executeAsync]);
+    if (mountedRef.current) {
+      await cargarProveedores(0, true);
+    }
+  }, [executeAsync, cargarProveedores]);
 
-  // Solo cargar una vez al montar
   useEffect(() => {
-    cargarProveedores();
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+    mountedRef.current = true;
+    
+    if (!initializedRef.current) {
+      initializedRef.current = true;
+      cargarProveedores(0, true);
+    }
+    
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []); // Solo ejecutar una vez
 
   return {
     proveedores: useMemo(() => proveedores, [proveedores]),
     loading,
     error,
     setError,
+    currentPage,
+    totalCount,
+    hasMore,
     crearProveedor,
     actualizarProveedor,
     eliminarProveedor,
-    recargar: () => cargarProveedores(true)
+    cargarMas: cargarMasProveedores,
+    recargar: () => cargarProveedores(0, true)
   };
 }
 
@@ -214,8 +402,12 @@ export function useComprasOptimized(pageSize = 10) {
   const [totalCount, setTotalCount] = useState(0);
   const [hasMore, setHasMore] = useState(false);
   const { loading, error, executeAsync, setError } = useSupabaseOptimized();
+  const mountedRef = useRef(true);
+  const initializedRef = useRef(false);
 
   const cargarCompras = useCallback(async (page = 0, reset = false) => {
+    if (!mountedRef.current) return;
+    
     const data = await executeAsync(async () => {
       // Contar total de compras
       const { count } = await supabase
@@ -237,24 +429,28 @@ export function useComprasOptimized(pageSize = 10) {
       
       if (error) throw error;
 
-      setTotalCount(count || 0);
-      setHasMore((page + 1) * pageSize < count);
+      if (mountedRef.current) {
+        setTotalCount(count || 0);
+        setHasMore((page + 1) * pageSize < count);
+      }
       
       return data || [];
     });
 
-    if (reset || page === 0) {
-      setCompras(data);
-    } else {
-      setCompras(prev => [...prev, ...data]);
+    if (mountedRef.current) {
+      if (reset || page === 0) {
+        setCompras(data);
+      } else {
+        setCompras(prev => [...prev, ...data]);
+      }
+      
+      setCurrentPage(page);
     }
-    
-    setCurrentPage(page);
     return data;
   }, [pageSize, executeAsync]);
 
   const cargarMasCompras = useCallback(() => {
-    if (!loading && hasMore) {
+    if (!loading && hasMore && mountedRef.current) {
       cargarCompras(currentPage + 1, false);
     }
   }, [loading, hasMore, currentPage, cargarCompras]);
@@ -283,7 +479,9 @@ export function useComprasOptimized(pageSize = 10) {
     });
 
     // Solo recargar la primera página para mostrar la nueva compra
-    await cargarCompras(0, true);
+    if (mountedRef.current) {
+      await cargarCompras(0, true);
+    }
     return nueva;
   }, [executeAsync, cargarCompras]);
 
@@ -298,12 +496,23 @@ export function useComprasOptimized(pageSize = 10) {
     });
 
     // Recargar página actual manteniendo posición
-    await cargarCompras(0, true);
+    if (mountedRef.current) {
+      await cargarCompras(0, true);
+    }
   }, [executeAsync, cargarCompras]);
 
   useEffect(() => {
-    cargarCompras(0, true);
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+    mountedRef.current = true;
+    
+    if (!initializedRef.current) {
+      initializedRef.current = true;
+      cargarCompras(0, true);
+    }
+    
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []); // Solo ejecutar una vez
 
   return {
     compras: useMemo(() => compras, [compras]),
@@ -327,8 +536,12 @@ export function useStockOptimized(pageSize = 20) {
   const [totalCount, setTotalCount] = useState(0);
   const [hasMore, setHasMore] = useState(false);
   const { loading, error, executeAsync, setError } = useSupabaseOptimized();
+  const mountedRef = useRef(true);
+  const initializedRef = useRef(false);
 
   const cargarStock = useCallback(async (page = 0, reset = false) => {
+    if (!mountedRef.current) return;
+    
     const data = await executeAsync(async () => {
       const { count } = await supabase
         .from('stock')
@@ -349,31 +562,44 @@ export function useStockOptimized(pageSize = 20) {
       
       if (error) throw error;
 
-      setTotalCount(count || 0);
-      setHasMore((page + 1) * pageSize < count);
+      if (mountedRef.current) {
+        setTotalCount(count || 0);
+        setHasMore((page + 1) * pageSize < count);
+      }
       
       return data || [];
     });
 
-    if (reset || page === 0) {
-      setStock(data);
-    } else {
-      setStock(prev => [...prev, ...data]);
+    if (mountedRef.current) {
+      if (reset || page === 0) {
+        setStock(data);
+      } else {
+        setStock(prev => [...prev, ...data]);
+      }
+      
+      setCurrentPage(page);
     }
-    
-    setCurrentPage(page);
     return data;
   }, [pageSize, executeAsync]);
 
   const cargarMasStock = useCallback(() => {
-    if (!loading && hasMore) {
+    if (!loading && hasMore && mountedRef.current) {
       cargarStock(currentPage + 1, false);
     }
   }, [loading, hasMore, currentPage, cargarStock]);
 
   useEffect(() => {
-    cargarStock(0, true);
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+    mountedRef.current = true;
+    
+    if (!initializedRef.current) {
+      initializedRef.current = true;
+      cargarStock(0, true);
+    }
+    
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []); // Solo ejecutar una vez
 
   return {
     stock: useMemo(() => stock, [stock]),
@@ -395,8 +621,12 @@ export function useCargasMaquinaOptimized(pageSize = 15) {
   const [totalCount, setTotalCount] = useState(0);
   const [hasMore, setHasMore] = useState(false);
   const { loading, error, executeAsync, setError } = useSupabaseOptimized();
+  const mountedRef = useRef(true);
+  const initializedRef = useRef(false);
 
   const cargarCargasMaquina = useCallback(async (page = 0, reset = false) => {
+    if (!mountedRef.current) return;
+    
     const data = await executeAsync(async () => {
       const { count } = await supabase
         .from('cargaproductosmaquina')
@@ -417,24 +647,28 @@ export function useCargasMaquinaOptimized(pageSize = 15) {
       
       if (error) throw error;
 
-      setTotalCount(count || 0);
-      setHasMore((page + 1) * pageSize < count);
+      if (mountedRef.current) {
+        setTotalCount(count || 0);
+        setHasMore((page + 1) * pageSize < count);
+      }
       
       return data || [];
     });
 
-    if (reset || page === 0) {
-      setCargas(data);
-    } else {
-      setCargas(prev => [...prev, ...data]);
+    if (mountedRef.current) {
+      if (reset || page === 0) {
+        setCargas(data);
+      } else {
+        setCargas(prev => [...prev, ...data]);
+      }
+      
+      setCurrentPage(page);
     }
-    
-    setCurrentPage(page);
     return data;
   }, [pageSize, executeAsync]);
 
   const cargarMasCargas = useCallback(() => {
-    if (!loading && hasMore) {
+    if (!loading && hasMore && mountedRef.current) {
       cargarCargasMaquina(currentPage + 1, false);
     }
   }, [loading, hasMore, currentPage, cargarCargasMaquina]);
@@ -451,13 +685,24 @@ export function useCargasMaquinaOptimized(pageSize = 15) {
     });
 
     // Recargar solo la primera página
-    await cargarCargasMaquina(0, true);
+    if (mountedRef.current) {
+      await cargarCargasMaquina(0, true);
+    }
     return nueva;
   }, [executeAsync, cargarCargasMaquina]);
 
   useEffect(() => {
-    cargarCargasMaquina(0, true);
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+    mountedRef.current = true;
+    
+    if (!initializedRef.current) {
+      initializedRef.current = true;
+      cargarCargasMaquina(0, true);
+    }
+    
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []); // Solo ejecutar una vez
 
   return {
     cargas: useMemo(() => cargas, [cargas]),

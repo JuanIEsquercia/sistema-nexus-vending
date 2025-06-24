@@ -1,13 +1,13 @@
 import { useState } from 'react';
 import { Container, Row, Col, Form, Button, Card, Alert, Table, Badge, Spinner } from 'react-bootstrap';
-import { useComprasOptimized, useProductosOptimized, useProveedoresOptimized } from '../../hooks/useSupabaseOptimized';
+import { useComprasOptimized, useProductosSimple, useProveedoresSimple } from '../../hooks/useSupabaseOptimized';
 import { supabase } from '../../lib/supabase';
 import PaginationLoader from '../common/PaginationLoader';
 
 function RegistroComprasOptimized() {
-  // Hooks optimizados con caché y paginación
-  const { productos, loading: loadingProductos } = useProductosOptimized();
-  const { proveedores, loading: loadingProveedores } = useProveedoresOptimized();
+  // Hooks simples para formularios (carga completa con caché)
+  const { productos, loading: loadingProductos } = useProductosSimple();
+  const { proveedores, loading: loadingProveedores } = useProveedoresSimple();
   const { 
     compras, 
     loading: loadingCompras, 
