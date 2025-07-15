@@ -9,7 +9,7 @@ import RegistroProveedores from './components/forms/RegistroProveedores';
 
 function App() {
   const [vistaActiva, setVistaActiva] = useState('productos');
-  const [modoOptimizado, setModoOptimizado] = useState(true);
+  const [modoOptimizado, setModoOptimizado] = useState(false);
 
   const renderizarVista = () => {
     switch (vistaActiva) {

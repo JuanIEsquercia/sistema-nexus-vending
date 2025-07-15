@@ -143,18 +143,42 @@ export const supabaseApi = {
   },
 
   async updateStock(producto_id, cantidad, costo_unitario) {
-    const { data, error } = await supabase
+    // Primero verificar si existe el registro
+    const { data: existingStock } = await supabase
       .from('stock')
-      .upsert({
-        producto_id,
-        cantidad,
-        costo_unitario,
-        fecha_actualizacion: new Date().toISOString()
-      })
-      .select();
-    
-    if (error) throw error;
-    return data[0];
+      .select('*')
+      .eq('producto_id', producto_id)
+      .single();
+
+    if (existingStock) {
+      // Si existe, actualizar
+      const { data, error } = await supabase
+        .from('stock')
+        .update({
+          cantidad,
+          costo_unitario,
+          fecha_actualizacion: new Date().toISOString()
+        })
+        .eq('producto_id', producto_id)
+        .select();
+      
+      if (error) throw error;
+      return data[0];
+    } else {
+      // Si no existe, insertar
+      const { data, error } = await supabase
+        .from('stock')
+        .insert({
+          producto_id,
+          cantidad,
+          costo_unitario,
+          fecha_actualizacion: new Date().toISOString()
+        })
+        .select();
+      
+      if (error) throw error;
+      return data[0];
+    }
   },
 
   // ===== CARGA PRODUCTOS MÁQUINA =====
@@ -179,5 +203,46 @@ export const supabaseApi = {
     
     if (error) throw error;
     return data[0];
+  },
+
+  // ===== EXPORTACIÓN CSV =====
+  async exportarTodasLasCompras() {
+    const { data, error } = await supabase
+      .from('compras')
+      .select(`
+        *,
+        proveedores(nombre)
+      `)
+      .order('fecha', { ascending: false });
+    
+    if (error) throw error;
+    return data;
+  },
+
+  async exportarTodasLasCargasMaquina() {
+    const { data, error } = await supabase
+      .from('cargaproductosmaquina')
+      .select(`
+        *,
+        productos(nombre)
+      `)
+      .order('fecha_carga', { ascending: false });
+    
+    if (error) throw error;
+    return data;
+  },
+
+  async exportarTodosLosDetallesCompra() {
+    const { data, error } = await supabase
+      .from('detallecompra')
+      .select(`
+        *,
+        compras(numero_factura, fecha, proveedores(nombre)),
+        productos(nombre)
+      `)
+      .order('compra_id', { ascending: false });
+    
+    if (error) throw error;
+    return data;
   }
 }; 

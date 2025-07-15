@@ -1,11 +1,13 @@
 import { useState } from 'react';
 import { Container, Row, Col, Form, Button, Card, Alert, Table, Badge, Spinner } from 'react-bootstrap';
-import { useProductos, useStock, useCargasMaquina } from '../../hooks/useSupabase';
+import { useProductos, useStock, useCargasMaquina, useExportCargasMaquina } from '../../hooks/useSupabase';
+import ExportCSVButton from '../common/ExportCSVButton';
 
 function CargaProductosMaquina() {
   const { productos, loading: loadingProductos } = useProductos();
   const { stock, loading: loadingStock, actualizarStock } = useStock();
   const { cargas, loading: loadingCargas, error, setError, crearCargaMaquina } = useCargasMaquina();
+  const { exportarTodasLasCargasMaquina } = useExportCargasMaquina();
 
   const [nuevaCarga, setNuevaCarga] = useState({
     producto: '',
@@ -104,8 +106,19 @@ function CargaProductosMaquina() {
       <div className="component-content">
         {/* Header */}
         <div className="component-header">
-          <h1 className="display-6 fw-bold text-primary mb-3">🔄 Carga de Productos en Máquinas</h1>
-          <p className="lead text-muted">Registra los productos cargados en las máquinas vending</p>
+          <div className="d-flex justify-content-between align-items-center mb-3">
+            <div>
+              <h1 className="display-6 fw-bold text-primary mb-0">🔄 Carga de Productos en Máquinas</h1>
+              <p className="lead text-muted mb-0">Registra los productos cargados en las máquinas vending</p>
+            </div>
+            <ExportCSVButton
+              tipo="cargas"
+              onExport={exportarTodasLasCargasMaquina}
+              variant="outline-success"
+              size="md"
+              className="ms-3"
+            />
+          </div>
         </div>
 
         {/* Mensaje de Alert */}
@@ -131,6 +144,8 @@ function CargaProductosMaquina() {
                         <Form.Group>
                           <Form.Label>Producto</Form.Label>
                           <Form.Select
+                            id="producto-select"
+                            name="producto"
                             value={nuevaCarga.producto}
                             onChange={(e) => setNuevaCarga({...nuevaCarga, producto: e.target.value})}
                             required
@@ -186,6 +201,8 @@ function CargaProductosMaquina() {
                         <Form.Group>
                           <Form.Label>Cantidad a Cargar</Form.Label>
                           <Form.Control
+                            id="cantidad-input"
+                            name="cantidad"
                             type="number"
                             min="1"
                             max={nuevaCarga.producto ? obtenerStockProducto(nuevaCarga.producto) : undefined}
@@ -207,6 +224,8 @@ function CargaProductosMaquina() {
                         <Form.Group>
                           <Form.Label>Fecha de Carga</Form.Label>
                           <Form.Control
+                            id="fecha-carga-input"
+                            name="fechaCarga"
                             type="date"
                             value={nuevaCarga.fechaCarga}
                             onChange={(e) => setNuevaCarga({...nuevaCarga, fechaCarga: e.target.value})}
@@ -220,6 +239,8 @@ function CargaProductosMaquina() {
                         <Form.Group>
                           <Form.Label>Responsable</Form.Label>
                           <Form.Control
+                            id="responsable-input"
+                            name="responsable"
                             type="text"
                             placeholder="Nombre del encargado"
                             value={nuevaCarga.responsable}

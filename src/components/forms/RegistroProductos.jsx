@@ -131,6 +131,8 @@ function RegistroProductos() {
                         <Form.Group>
                           <Form.Label>Nombre del Producto</Form.Label>
                           <Form.Control
+                            id="nombre-producto-input"
+                            name="nombre"
                             type="text"
                             placeholder="Ej: Coca Cola 500ml"
                             value={nuevoProducto.nombre}
@@ -145,6 +147,8 @@ function RegistroProductos() {
                         <Form.Group>
                           <Form.Label>Multiplicador de Precio</Form.Label>
                           <Form.Control
+                            id="multiplicador-precio-input"
+                            name="multiplicadorPrecio"
                             type="number"
                             step="0.1"
                             min="0.1"

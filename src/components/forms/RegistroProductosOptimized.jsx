@@ -1,28 +1,28 @@
 import { useState } from 'react';
 import { Container, Row, Col, Form, Button, Card, Alert, Table, Badge, Spinner } from 'react-bootstrap';
-import { useProveedores } from '../../hooks/useSupabase';
+import { useProductosSimple } from '../../hooks/useSupabaseOptimized';
 
-function RegistroProveedores() {
+function RegistroProductosOptimized() {
   const {
-    proveedores,
+    productos,
     loading,
     error,
     setError,
-    crearProveedor,
-    actualizarProveedor,
-    eliminarProveedor
-  } = useProveedores();
+    crearProducto,
+    actualizarProducto,
+    eliminarProducto
+  } = useProductosSimple();
 
-  const [nuevoProveedor, setNuevoProveedor] = useState({
+  const [nuevoProducto, setNuevoProducto] = useState({
     nombre: '',
-    telefono: ''
+    multiplicadorPrecio: ''
   });
 
   const [editandoId, setEditandoId] = useState(null);
   const [mensaje, setMensaje] = useState({ tipo: '', texto: '' });
 
   const limpiarFormulario = () => {
-    setNuevoProveedor({ nombre: '', telefono: '' });
+    setNuevoProducto({ nombre: '', multiplicadorPrecio: '' });
     setEditandoId(null);
   };
 
@@ -31,77 +31,63 @@ function RegistroProveedores() {
     setTimeout(() => setMensaje({ tipo: '', texto: '' }), 3000);
   };
 
-  const validarTelefono = (telefono) => {
-    // Acepta formatos: 123-456-7890, (123) 456-7890, 123.456.7890, 1234567890
-    const regex = /^[\+]?[1-9][\d]{0,15}$|^[\d\-\.\(\)\s]+$/;
-    return regex.test(telefono.replace(/\s/g, ''));
-  };
-
-  const formatearTelefono = (telefono) => {
-    // Eliminar todos los caracteres no numéricos
-    const numeros = telefono.replace(/\D/g, '');
-    
-    // Si tiene 10 dígitos, formatear como XXX-XXX-XXXX
-    if (numeros.length === 10) {
-      return `${numeros.slice(0, 3)}-${numeros.slice(3, 6)}-${numeros.slice(6)}`;
-    }
-    
-    // Si tiene más o menos dígitos, devolver tal como está
-    return telefono;
+  const calcularPrecioVenta = (costoBase, multiplicador) => {
+    if (!costoBase || !multiplicador) return '0.00';
+    return (parseFloat(costoBase) * parseFloat(multiplicador)).toFixed(2);
   };
 
   const manejarSubmit = async (e) => {
     e.preventDefault();
     
-    if (!nuevoProveedor.nombre.trim() || !nuevoProveedor.telefono.trim()) {
+    if (!nuevoProducto.nombre.trim() || !nuevoProducto.multiplicadorPrecio) {
       mostrarMensaje('danger', 'Por favor complete todos los campos');
       return;
     }
 
-    if (!validarTelefono(nuevoProveedor.telefono)) {
-      mostrarMensaje('danger', 'Por favor ingrese un número de teléfono válido');
+    if (parseFloat(nuevoProducto.multiplicadorPrecio) <= 0) {
+      mostrarMensaje('danger', 'El multiplicador de precio debe ser mayor a 0');
       return;
     }
 
     try {
       setError(null);
       
-      const proveedorData = {
-        nombre: nuevoProveedor.nombre.trim(),
-        telefono: formatearTelefono(nuevoProveedor.telefono.trim())
+      const productoData = {
+        nombre: nuevoProducto.nombre.trim(),
+        multiplicador_precio: parseFloat(nuevoProducto.multiplicadorPrecio)
       };
 
       if (editandoId) {
-        await actualizarProveedor(editandoId, proveedorData);
-        mostrarMensaje('success', 'Proveedor actualizado exitosamente');
+        await actualizarProducto(editandoId, productoData);
+        mostrarMensaje('success', 'Producto actualizado exitosamente');
       } else {
-        await crearProveedor(proveedorData);
-        mostrarMensaje('success', 'Proveedor registrado exitosamente');
+        await crearProducto(productoData);
+        mostrarMensaje('success', 'Producto registrado exitosamente');
       }
 
       limpiarFormulario();
     } catch (error) {
       if (error.message.includes('duplicate key')) {
-        mostrarMensaje('danger', 'Ya existe un proveedor con ese nombre');
+        mostrarMensaje('danger', 'Ya existe un producto con ese nombre');
       } else {
         mostrarMensaje('danger', `Error: ${error.message}`);
       }
     }
   };
 
-  const editarProveedorLocal = (proveedor) => {
-    setNuevoProveedor({
-      nombre: proveedor.nombre,
-      telefono: proveedor.telefono
+  const editarProducto = (producto) => {
+    setNuevoProducto({
+      nombre: producto.nombre,
+      multiplicadorPrecio: producto.multiplicador_precio.toString()
     });
-    setEditandoId(proveedor.id);
+    setEditandoId(producto.id);
   };
 
   const confirmarEliminar = async (id, nombre) => {
-    if (window.confirm(`¿Está seguro de eliminar el proveedor "${nombre}"?`)) {
+    if (window.confirm(`¿Está seguro de eliminar el producto "${nombre}"?`)) {
       try {
-        await eliminarProveedor(id);
-        mostrarMensaje('success', 'Proveedor eliminado exitosamente');
+        await eliminarProducto(id);
+        mostrarMensaje('success', 'Producto eliminado exitosamente');
         if (editandoId === id) {
           limpiarFormulario();
         }
@@ -116,8 +102,8 @@ function RegistroProveedores() {
       <div className="component-content">
         {/* Header */}
         <div className="component-header">
-          <h1 className="display-6 fw-bold text-primary mb-3">🏢 Gestión de Proveedores</h1>
-          <p className="lead text-muted">Administra la información de contacto de tus proveedores</p>
+          <h1 className="display-6 fw-bold text-primary mb-3">🆕 Gestión de Productos (Optimizado)</h1>
+          <p className="lead text-muted">Administra el catálogo de productos con multiplicadores de precio</p>
         </div>
 
         {/* Mensaje de Alert */}
@@ -135,7 +121,7 @@ function RegistroProveedores() {
               <Card className="form-card w-100">
                 <Card.Header className="bg-primary text-white">
                   <h5 className="mb-0">
-                    {editandoId ? '✏️ Editar Proveedor' : '➕ Nuevo Proveedor'}
+                    {editandoId ? '✏️ Editar Producto' : '➕ Nuevo Producto'}
                   </h5>
                 </Card.Header>
                 <Card.Body>
@@ -143,14 +129,14 @@ function RegistroProveedores() {
                     <Row className="g-3">
                       <Col xs={12}>
                         <Form.Group>
-                          <Form.Label>Nombre del Proveedor</Form.Label>
+                          <Form.Label>Nombre del Producto</Form.Label>
                           <Form.Control
-                            id="nombre-proveedor-input"
+                            id="nombre-producto-input-optimized"
                             name="nombre"
                             type="text"
-                            placeholder="Ej: Distribuidora Central"
-                            value={nuevoProveedor.nombre}
-                            onChange={(e) => setNuevoProveedor({...nuevoProveedor, nombre: e.target.value})}
+                            placeholder="Ej: Coca Cola 500ml"
+                            value={nuevoProducto.nombre}
+                            onChange={(e) => setNuevoProducto({...nuevoProducto, nombre: e.target.value})}
                             required
                             disabled={loading}
                           />
@@ -159,22 +145,40 @@ function RegistroProveedores() {
 
                       <Col xs={12}>
                         <Form.Group>
-                          <Form.Label>Teléfono</Form.Label>
+                          <Form.Label>Multiplicador de Precio</Form.Label>
                           <Form.Control
-                            id="telefono-proveedor-input"
-                            name="telefono"
-                            type="tel"
-                            placeholder="123-456-7890"
-                            value={nuevoProveedor.telefono}
-                            onChange={(e) => setNuevoProveedor({...nuevoProveedor, telefono: e.target.value})}
+                            id="multiplicador-precio-input-optimized"
+                            name="multiplicadorPrecio"
+                            type="number"
+                            step="0.1"
+                            min="0.1"
+                            placeholder="1.8"
+                            value={nuevoProducto.multiplicadorPrecio}
+                            onChange={(e) => setNuevoProducto({...nuevoProducto, multiplicadorPrecio: e.target.value})}
                             required
                             disabled={loading}
                           />
                           <Form.Text className="text-muted">
-                            Formatos aceptados: 123-456-7890, (123) 456-7890, 123.456.7890
+                            Factor por el que se multiplica el costo para obtener el precio de venta
                           </Form.Text>
                         </Form.Group>
                       </Col>
+
+                      {/* Ejemplo de cálculo */}
+                      {nuevoProducto.multiplicadorPrecio && (
+                        <Col xs={12}>
+                          <Card className="bg-light border-0">
+                            <Card.Body className="py-2">
+                              <h6 className="text-info mb-2">💡 Ejemplo de Precios:</h6>
+                              <div className="small">
+                                <div>• Costo $5.00 → Venta: ${calcularPrecioVenta('5.00', nuevoProducto.multiplicadorPrecio)}</div>
+                                <div>• Costo $10.00 → Venta: ${calcularPrecioVenta('10.00', nuevoProducto.multiplicadorPrecio)}</div>
+                                <div>• Costo $15.00 → Venta: ${calcularPrecioVenta('15.00', nuevoProducto.multiplicadorPrecio)}</div>
+                              </div>
+                            </Card.Body>
+                          </Card>
+                        </Col>
+                      )}
 
                       <Col xs={12}>
                         <div className="d-grid gap-2 d-md-flex">
@@ -191,7 +195,7 @@ function RegistroProveedores() {
                               </>
                             ) : (
                               <>
-                                {editandoId ? '💾 Actualizar' : '➕ Registrar'} Proveedor
+                                {editandoId ? '💾 Actualizar' : '➕ Registrar'} Producto
                               </>
                             )}
                           </Button>
@@ -213,26 +217,26 @@ function RegistroProveedores() {
               </Card>
             </Col>
 
-            {/* Lista de Proveedores */}
+            {/* Lista de Productos */}
             <Col xs={12} lg={7} className="d-flex">
               <Card className="list-card w-100">
                 <Card.Header className="bg-info text-white d-flex justify-content-between align-items-center flex-wrap">
-                  <h5 className="mb-0">📋 Proveedores Registrados</h5>
+                  <h5 className="mb-0">📋 Productos Registrados</h5>
                   <Badge bg="light" text="info">
-                    {loading ? '⏳' : `Total: ${proveedores.length}`}
+                    {loading ? '⏳' : `Total: ${productos.length}`}
                   </Badge>
                 </Card.Header>
                 <Card.Body className="p-0">
                   {loading ? (
                     <div className="text-center py-5">
                       <Spinner animation="border" variant="primary" />
-                      <p className="text-muted mt-3">Cargando proveedores...</p>
+                      <p className="text-muted mt-3">Cargando productos...</p>
                     </div>
-                  ) : proveedores.length === 0 ? (
+                  ) : productos.length === 0 ? (
                     <div className="text-center py-5">
-                      <div className="display-1 text-muted mb-3">🏢</div>
-                      <h5 className="text-muted">No hay proveedores registrados</h5>
-                      <p className="text-muted mb-0">Agrega tu primer proveedor usando el formulario</p>
+                      <div className="display-1 text-muted mb-3">🆕</div>
+                      <h5 className="text-muted">No hay productos registrados</h5>
+                      <p className="text-muted mb-0">Agrega tu primer producto usando el formulario</p>
                     </div>
                   ) : (
                     <div className="table-responsive">
@@ -240,29 +244,31 @@ function RegistroProveedores() {
                         <thead>
                           <tr>
                             <th className="d-none d-md-table-cell">ID</th>
-                            <th>Proveedor</th>
-                            <th className="text-center">Teléfono</th>
+                            <th>Producto</th>
+                            <th className="text-center">Multiplicador</th>
                             <th className="text-center">Acciones</th>
                           </tr>
                         </thead>
                         <tbody>
-                          {proveedores.map((proveedor) => (
-                            <tr key={proveedor.id} className={editandoId === proveedor.id ? 'table-warning' : ''}>
-                              <td className="d-none d-md-table-cell fw-medium">#{proveedor.id}</td>
+                          {productos.map((producto) => (
+                            <tr key={producto.id} className={editandoId === producto.id ? 'table-warning' : ''}>
+                              <td className="d-none d-md-table-cell fw-medium">#{producto.id}</td>
                               <td>
-                                <div className="fw-semibold">{proveedor.nombre}</div>
-                                <div className="small text-muted d-md-none">ID: #{proveedor.id}</div>
+                                <div className="fw-semibold">{producto.nombre}</div>
+                                <div className="small text-muted d-md-none">ID: #{producto.id}</div>
                               </td>
                               <td className="text-center">
-                                <Badge bg="secondary" className="fs-6">{proveedor.telefono}</Badge>
+                                <Badge bg="success" className="fs-6">
+                                  {producto.multiplicador_precio}x
+                                </Badge>
                               </td>
                               <td>
                                 <div className="d-flex justify-content-center gap-1 flex-wrap">
                                   <Button
                                     variant="outline-primary"
                                     size="sm"
-                                    onClick={() => editarProveedorLocal(proveedor)}
-                                    title="Editar proveedor"
+                                    onClick={() => editarProducto(producto)}
+                                    title="Editar producto"
                                     disabled={loading}
                                   >
                                     <span className="d-none d-md-inline">✏️ Editar</span>
@@ -271,8 +277,8 @@ function RegistroProveedores() {
                                   <Button
                                     variant="outline-danger"
                                     size="sm"
-                                    onClick={() => confirmarEliminar(proveedor.id, proveedor.nombre)}
-                                    title="Eliminar proveedor"
+                                    onClick={() => confirmarEliminar(producto.id, producto.nombre)}
+                                    title="Eliminar producto"
                                     disabled={loading}
                                   >
                                     <span className="d-none d-md-inline">🗑️ Eliminar</span>
@@ -296,4 +302,4 @@ function RegistroProveedores() {
   );
 }
 
-export default RegistroProveedores; 
+export default RegistroProductosOptimized; 

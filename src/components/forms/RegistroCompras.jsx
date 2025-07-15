@@ -1,12 +1,14 @@
 import { useState } from 'react';
 import { Container, Row, Col, Form, Button, Card, Alert, Table, Badge, Spinner } from 'react-bootstrap';
-import { useCompras, useProductos, useProveedores } from '../../hooks/useSupabase';
+import { useCompras, useProductos, useProveedores, useExportDetallesCompra } from '../../hooks/useSupabase';
 import { supabase } from '../../lib/supabase';
+import ExportCSVButton from '../common/ExportCSVButton';
 
 function RegistroCompras() {
   const { productos, loading: loadingProductos } = useProductos();
   const { proveedores, loading: loadingProveedores } = useProveedores();
   const { compras, loading: loadingCompras, error, setError, crearCompra, recargar: recargarCompras } = useCompras();
+  const { exportarTodosLosDetallesCompra } = useExportDetallesCompra();
 
   const [compra, setCompra] = useState({
     proveedor: '',
@@ -191,8 +193,19 @@ function RegistroCompras() {
       <div className="component-content">
         {/* Header */}
         <div className="component-header">
-          <h1 className="display-6 fw-bold text-primary mb-3">📦 Registro de Compras</h1>
-          <p className="lead text-muted">Registra las compras con cálculo automático de costo unitario</p>
+          <div className="d-flex justify-content-between align-items-center mb-3">
+            <div>
+              <h1 className="display-6 fw-bold text-primary mb-0">📦 Registro de Compras</h1>
+              <p className="lead text-muted mb-0">Registra las compras con cálculo automático de costo unitario</p>
+            </div>
+            <ExportCSVButton
+              tipo="detalles"
+              onExport={exportarTodosLosDetallesCompra}
+              variant="outline-success"
+              size="md"
+              className="ms-3"
+            />
+          </div>
         </div>
 
         {/* Mensaje de Alert */}
@@ -219,6 +232,8 @@ function RegistroCompras() {
                         <Form.Group>
                           <Form.Label>Proveedor</Form.Label>
                           <Form.Select
+                            id="proveedor-select"
+                            name="proveedor"
                             value={compra.proveedor}
                             onChange={(e) => setCompra({...compra, proveedor: e.target.value})}
                             required
@@ -241,6 +256,8 @@ function RegistroCompras() {
                         <Form.Group>
                           <Form.Label>Número de Factura</Form.Label>
                           <Form.Control
+                            id="numero-factura-input"
+                            name="numeroFactura"
                             type="text"
                             placeholder="FAC-001"
                             value={compra.numeroFactura}
@@ -255,6 +272,8 @@ function RegistroCompras() {
                         <Form.Group>
                           <Form.Label>Fecha</Form.Label>
                           <Form.Control
+                            id="fecha-compra-input"
+                            name="fecha"
                             type="date"
                             value={compra.fecha}
                             onChange={(e) => setCompra({...compra, fecha: e.target.value})}
@@ -299,6 +318,8 @@ function RegistroCompras() {
                                 <tr key={index}>
                                   <td>
                                     <Form.Select
+                                      id={`producto-select-${index}`}
+                                      name={`producto-${index}`}
                                       value={detalle.producto}
                                       onChange={(e) => actualizarDetalle(index, 'producto', e.target.value)}
                                       size="sm"
@@ -315,6 +336,8 @@ function RegistroCompras() {
                                   </td>
                                   <td>
                                     <Form.Control
+                                      id={`cantidad-input-${index}`}
+                                      name={`cantidad-${index}`}
                                       type="number"
                                       min="1"
                                       value={detalle.cantidad}
@@ -328,6 +351,8 @@ function RegistroCompras() {
                                   </td>
                                   <td>
                                     <Form.Control
+                                      id={`precio-total-input-${index}`}
+                                      name={`precioTotal-${index}`}
                                       type="number"
                                       step="0.01"
                                       min="0.01"
@@ -502,4 +527,4 @@ function RegistroCompras() {
   );
 }
 
-export default RegistroCompras; 
+export default RegistroCompras;

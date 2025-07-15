@@ -199,3 +199,81 @@ export function useCargasMaquina() {
     recargar: cargarCargasMaquina
   };
 } 
+
+// Hook específico para exportación de compras
+export function useExportCompras() {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  const exportarTodasLasCompras = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await supabaseApi.exportarTodasLasCompras();
+      return data;
+    } catch (err) {
+      setError(err.message);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return {
+    loading,
+    error,
+    exportarTodasLasCompras
+  };
+}
+
+// Hook específico para exportación de cargas de máquina
+export function useExportCargasMaquina() {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  const exportarTodasLasCargasMaquina = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await supabaseApi.exportarTodasLasCargasMaquina();
+      return data;
+    } catch (err) {
+      setError(err.message);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return {
+    loading,
+    error,
+    exportarTodasLasCargasMaquina
+  };
+}
+
+// Hook específico para exportación de detalles de compra
+export function useExportDetallesCompra() {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  const exportarTodosLosDetallesCompra = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await supabaseApi.exportarTodosLosDetallesCompra();
+      return data;
+    } catch (err) {
+      setError(err.message);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return {
+    loading,
+    error,
+    exportarTodosLosDetallesCompra
+  };
+} 

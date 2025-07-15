@@ -36,10 +36,8 @@ function RegistroComprasOptimized() {
   };
 
   const agregarDetalle = () => {
-    console.log('🔥 Agregando detalle. Detalles actuales:', compra.detalles.length);
     setCompra(prev => {
       const nuevosDetalles = [...prev.detalles, { producto: '', cantidad: '', precioTotal: '' }];
-      console.log('🔥 Nuevos detalles:', nuevosDetalles.length);
       return {
         ...prev,
         detalles: nuevosDetalles
@@ -224,6 +222,8 @@ function RegistroComprasOptimized() {
                     <Form.Group className="mb-3">
                       <Form.Label>Proveedor *</Form.Label>
                       <Form.Select
+                        id="proveedor-select-optimized"
+                        name="proveedor"
                         value={compra.proveedor}
                         onChange={(e) => setCompra(prev => ({ ...prev, proveedor: e.target.value }))}
                         required
@@ -243,6 +243,8 @@ function RegistroComprasOptimized() {
                         <Form.Group className="mb-3">
                           <Form.Label>Número de Factura *</Form.Label>
                           <Form.Control
+                            id="numero-factura-input-optimized"
+                            name="numeroFactura"
                             type="text"
                             value={compra.numeroFactura}
                             onChange={(e) => setCompra(prev => ({ ...prev, numeroFactura: e.target.value }))}
@@ -255,6 +257,8 @@ function RegistroComprasOptimized() {
                         <Form.Group className="mb-3">
                           <Form.Label>Fecha *</Form.Label>
                           <Form.Control
+                            id="fecha-compra-input-optimized"
+                            name="fecha"
                             type="date"
                             value={compra.fecha}
                             onChange={(e) => setCompra(prev => ({ ...prev, fecha: e.target.value }))}
@@ -298,6 +302,8 @@ function RegistroComprasOptimized() {
                               <tr key={index}>
                                 <td>
                                   <Form.Select
+                                    id={`producto-select-optimized-${index}`}
+                                    name={`producto-${index}`}
                                     value={detalle.producto}
                                     onChange={(e) => actualizarDetalle(index, 'producto', e.target.value)}
                                     size="sm"
@@ -314,6 +320,8 @@ function RegistroComprasOptimized() {
                                 </td>
                                 <td>
                                   <Form.Control
+                                    id={`cantidad-input-optimized-${index}`}
+                                    name={`cantidad-${index}`}
                                     type="number"
                                     min="1"
                                     value={detalle.cantidad}
@@ -327,6 +335,8 @@ function RegistroComprasOptimized() {
                                 </td>
                                 <td>
                                   <Form.Control
+                                    id={`precio-total-input-optimized-${index}`}
+                                    name={`precioTotal-${index}`}
                                     type="number"
                                     step="0.01"
                                     min="0.01"
