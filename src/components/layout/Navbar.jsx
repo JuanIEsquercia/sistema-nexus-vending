@@ -50,6 +50,14 @@ function NavbarComponent({ vistaActiva, setVistaActiva }) {
             >
               🔄 Cargar
             </Nav.Link>
+            
+            <Nav.Link 
+              href="#"
+              className={`nav-link-custom ${vistaActiva === 'presupuestos' ? 'active' : ''}`}
+              onClick={() => setVistaActiva('presupuestos')}
+            >
+              📋 Presupuestos
+            </Nav.Link>
           </Nav>
         </Navbar.Collapse>
       </Container>

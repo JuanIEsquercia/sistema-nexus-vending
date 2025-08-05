@@ -6,6 +6,7 @@ import RegistroProductos from './components/forms/RegistroProductos';
 import RegistroProductosOptimized from './components/forms/RegistroProductosOptimized';
 import CargaProductosMaquina from './components/forms/CargaProductosMaquina';
 import RegistroProveedores from './components/forms/RegistroProveedores';
+import Presupuestos from './components/forms/Presupuestos';
 
 function App() {
   const [vistaActiva, setVistaActiva] = useState('productos');
@@ -21,6 +22,8 @@ function App() {
         return modoOptimizado ? <RegistroComprasOptimized /> : <RegistroCompras />;
       case 'cargas':
         return <CargaProductosMaquina />;
+      case 'presupuestos':
+        return <Presupuestos />;
       default:
         return modoOptimizado ? <RegistroProductosOptimized /> : <RegistroProductos />;
     }

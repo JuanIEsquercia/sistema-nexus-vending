@@ -244,5 +244,7 @@ export const supabaseApi = {
     
     if (error) throw error;
     return data;
-  }
+  },
+
+
 }; 
