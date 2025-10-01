@@ -246,5 +246,123 @@ export const supabaseApi = {
     return data;
   },
 
+  // ===== KEEP-ALIVE =====
+  async pingDatabase() {
+    try {
+      // Hacer una consulta simple para mantener la conexión activa
+      const { data, error } = await supabase
+        .from('productos')
+        .select('id')
+        .limit(1);
+      
+      if (error) throw error;
+      return { success: true, timestamp: new Date().toISOString() };
+    } catch (error) {
+      console.error('Error en ping a la base de datos:', error);
+      return { success: false, error: error.message, timestamp: new Date().toISOString() };
+    }
+  }
 
-}; 
+};
+
+// ===== KEEP-ALIVE SERVICE =====
+class SupabaseKeepAlive {
+  constructor() {
+    this.intervalId = null;
+    this.isActive = false;
+    this.pingInterval = 36 * 60 * 60 * 1000; // 36 horas por defecto
+    this.lastPing = null;
+    this.pingHistory = [];
+  }
+
+  start(intervalHours = 36) {
+    if (this.isActive) {
+      console.log('Keep-alive ya está activo');
+      return;
+    }
+
+    this.pingInterval = intervalHours * 60 * 60 * 1000;
+    this.isActive = true;
+    
+    console.log(`🔄 Iniciando keep-alive de Supabase cada ${intervalHours} horas`);
+    
+    // Ping inmediato
+    this.ping();
+    
+    // Ping periódico
+    this.intervalId = setInterval(() => {
+      this.ping();
+    }, this.pingInterval);
+  }
+
+  stop() {
+    if (this.intervalId) {
+      clearInterval(this.intervalId);
+      this.intervalId = null;
+    }
+    this.isActive = false;
+    console.log('⏹️ Keep-alive de Supabase detenido');
+  }
+
+  async ping() {
+    try {
+      const result = await supabaseApi.pingDatabase();
+      this.lastPing = result;
+      
+      // Mantener historial de los últimos 10 pings
+      this.pingHistory.unshift(result);
+      if (this.pingHistory.length > 10) {
+        this.pingHistory.pop();
+      }
+
+      if (result.success) {
+        console.log(`✅ Ping exitoso a Supabase: ${result.timestamp}`);
+      } else {
+        console.warn(`⚠️ Ping fallido a Supabase: ${result.error}`);
+      }
+      
+      return result;
+    } catch (error) {
+      console.error('❌ Error en ping de keep-alive:', error);
+      return { success: false, error: error.message, timestamp: new Date().toISOString() };
+    }
+  }
+
+  getStatus() {
+    return {
+      isActive: this.isActive,
+      lastPing: this.lastPing,
+      pingHistory: this.pingHistory,
+      intervalHours: this.pingInterval / (60 * 60 * 1000)
+    };
+  }
+
+  // Ping manual
+  async manualPing() {
+    console.log('🔄 Ping manual iniciado...');
+    return await this.ping();
+  }
+}
+
+// Instancia global del keep-alive
+export const supabaseKeepAlive = new SupabaseKeepAlive();
+
+// Auto-iniciar keep-alive cuando se importa el módulo
+if (typeof window !== 'undefined') {
+  // Solo en el navegador - cada 36 horas
+  supabaseKeepAlive.start(36); // Cada 36 horas
+  
+  // También mantener activo cuando la ventana está visible (solo si han pasado más de 12 horas desde el último ping)
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden && supabaseKeepAlive.isActive) {
+      const lastPing = supabaseKeepAlive.lastPing;
+      const now = new Date();
+      const hoursSinceLastPing = lastPing ? (now - new Date(lastPing.timestamp)) / (1000 * 60 * 60) : 999;
+      
+      if (hoursSinceLastPing > 12) {
+        console.log('👁️ Ventana visible - haciendo ping preventivo');
+        supabaseKeepAlive.ping();
+      }
+    }
+  });
+} 

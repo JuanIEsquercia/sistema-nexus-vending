@@ -43,6 +43,7 @@ function NavbarComponent({ vistaActiva, setVistaActiva }) {
               📦 Compras
             </Nav.Link>
             
+            {/* OCULTO TEMPORALMENTE
             <Nav.Link 
               href="#"
               className={`nav-link-custom ${vistaActiva === 'cargas' ? 'active' : ''}`}
@@ -50,13 +51,21 @@ function NavbarComponent({ vistaActiva, setVistaActiva }) {
             >
               🔄 Cargar
             </Nav.Link>
+            */}
             
-            <Nav.Link 
+            <Nav.Link
               href="#"
               className={`nav-link-custom ${vistaActiva === 'presupuestos' ? 'active' : ''}`}
               onClick={() => setVistaActiva('presupuestos')}
             >
               📋 Presupuestos
+            </Nav.Link>
+            <Nav.Link
+              href="#"
+              className={`nav-link-custom ${vistaActiva === 'dashboard' ? 'active' : ''}`}
+              onClick={() => setVistaActiva('dashboard')}
+            >
+              📊 Dashboard
             </Nav.Link>
           </Nav>
         </Navbar.Collapse>

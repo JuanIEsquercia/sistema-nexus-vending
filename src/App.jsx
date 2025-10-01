@@ -1,12 +1,12 @@
 import { useState } from 'react';
 import NavbarComponent from './components/layout/Navbar';
 import RegistroCompras from './components/forms/RegistroCompras';
-import RegistroComprasOptimized from './components/forms/RegistroComprasOptimized';
 import RegistroProductos from './components/forms/RegistroProductos';
 import RegistroProductosOptimized from './components/forms/RegistroProductosOptimized';
-import CargaProductosMaquina from './components/forms/CargaProductosMaquina';
+// import CargaProductosMaquina from './components/forms/CargaProductosMaquina'; // OCULTO TEMPORALMENTE
 import RegistroProveedores from './components/forms/RegistroProveedores';
 import Presupuestos from './components/forms/Presupuestos';
+import Dashboard from './components/forms/Dashboard';
 
 function App() {
   const [vistaActiva, setVistaActiva] = useState('productos');
@@ -18,12 +18,14 @@ function App() {
         return modoOptimizado ? <RegistroProductosOptimized /> : <RegistroProductos />;
       case 'proveedores':
         return <RegistroProveedores />;
-      case 'compras':
-        return modoOptimizado ? <RegistroComprasOptimized /> : <RegistroCompras />;
-      case 'cargas':
-        return <CargaProductosMaquina />;
+              case 'compras':
+                return <RegistroCompras />;
+      // case 'cargas':
+      //   return <CargaProductosMaquina />; // OCULTO TEMPORALMENTE
       case 'presupuestos':
         return <Presupuestos />;
+      case 'dashboard':
+        return <Dashboard />;
       default:
         return modoOptimizado ? <RegistroProductosOptimized /> : <RegistroProductos />;
     }
@@ -42,7 +44,7 @@ function App() {
       <NavbarComponent vistaActiva={vistaActiva} setVistaActiva={setVistaActiva} />
       
       {/* Toggle de modo optimizado */}
-      {(vistaActiva === 'compras' || vistaActiva === 'productos') && (
+      {vistaActiva === 'productos' && (
         <div style={{ 
           textAlign: 'center', 
           padding: '10px 0', 
@@ -97,8 +99,8 @@ function App() {
         width: '100%',
         maxWidth: 'none',
         margin: 0,
-        padding: 0,
-        paddingTop: (vistaActiva === 'compras' || vistaActiva === 'productos') ? '76px' : '76px'
+        padding: vistaActiva === 'dashboard' ? '0' : '0',
+        paddingTop: vistaActiva === 'productos' ? '76px' : '76px'
       }}>
         {renderizarVista()}
       </main>
