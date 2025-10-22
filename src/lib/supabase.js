@@ -1,9 +1,20 @@
 import { createClient } from '@supabase/supabase-js'
 
-// Tu URL y Key de Supabase (reemplaza con los valores de tu proyecto)
+// Configuración de Supabase con validación
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://awnudpkaqgyadfvjvacf.supabase.co'
 const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF3bnVkcGthcWd5YWRmdmp2YWNmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDkzNDA3OTcsImV4cCI6MjA2NDkxNjc5N30.mGDeJyhT3ew9ADPk0rlpIlUvMq_hfFDnlvIUhpEb2D8'
 
+// Validar configuración
+if (!supabaseUrl || !supabaseKey) {
+  console.error('❌ Error: Variables de entorno de Supabase no configuradas');
+  console.error('URL:', supabaseUrl);
+  console.error('Key:', supabaseKey ? 'Configurada' : 'No configurada');
+}
+
+// Detectar si estamos en desarrollo
+const isDevelopment = import.meta.env.DEV
+
+// Crear cliente con configuración básica
 export const supabase = createClient(supabaseUrl, supabaseKey)
 
 // Funciones helper para las operaciones CRUD
@@ -259,8 +270,38 @@ export const supabaseApi = {
       return { success: true, timestamp: new Date().toISOString() };
     } catch (error) {
       console.error('Error en ping a la base de datos:', error);
+      
+      // Detectar tipos específicos de error
+      if (error.message.includes('NetworkError') || error.message.includes('fetch')) {
+        console.error('🚨 Error de red detectado - Verificar conexión a Supabase');
+      }
+      
       return { success: false, error: error.message, timestamp: new Date().toISOString() };
     }
+  },
+
+  // ===== DIAGNÓSTICO DE CONEXIÓN =====
+  async diagnosticarConexion() {
+    const diagnosticos = {
+      variablesEntorno: {
+        url: !!import.meta.env.VITE_SUPABASE_URL,
+        key: !!import.meta.env.VITE_SUPABASE_ANON_KEY
+      },
+      configuracion: {
+        url: supabaseUrl,
+        key: supabaseKey ? 'Configurada' : 'No configurada'
+      },
+      timestamp: new Date().toISOString()
+    };
+
+    try {
+      const ping = await this.pingDatabase();
+      diagnosticos.conexion = ping;
+    } catch (error) {
+      diagnosticos.conexion = { success: false, error: error.message };
+    }
+
+    return diagnosticos;
   }
 
 };
@@ -318,12 +359,18 @@ class SupabaseKeepAlive {
       if (result.success) {
         console.log(`✅ Ping exitoso a Supabase: ${result.timestamp}`);
       } else {
-        console.warn(`⚠️ Ping fallido a Supabase: ${result.error}`);
+        // Solo mostrar warning en producción, no en desarrollo
+        if (!import.meta.env.DEV) {
+          console.warn(`⚠️ Ping fallido a Supabase: ${result.error}`);
+        }
       }
       
       return result;
     } catch (error) {
-      console.error('❌ Error en ping de keep-alive:', error);
+      // Solo mostrar error en producción
+      if (!import.meta.env.DEV) {
+        console.error('❌ Error en ping de keep-alive:', error);
+      }
       return { success: false, error: error.message, timestamp: new Date().toISOString() };
     }
   }
@@ -347,9 +394,9 @@ class SupabaseKeepAlive {
 // Instancia global del keep-alive
 export const supabaseKeepAlive = new SupabaseKeepAlive();
 
-// Auto-iniciar keep-alive cuando se importa el módulo
-if (typeof window !== 'undefined') {
-  // Solo en el navegador - cada 36 horas
+// Auto-iniciar keep-alive solo en producción
+if (typeof window !== 'undefined' && !isDevelopment) {
+  // Solo en producción - cada 36 horas
   supabaseKeepAlive.start(36); // Cada 36 horas
   
   // También mantener activo cuando la ventana está visible (solo si han pasado más de 12 horas desde el último ping)
@@ -365,4 +412,6 @@ if (typeof window !== 'undefined') {
       }
     }
   });
+} else if (isDevelopment) {
+  console.log('🚫 Keep-alive desactivado en desarrollo para evitar errores de CORS');
 } 
