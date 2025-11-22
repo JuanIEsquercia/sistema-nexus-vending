@@ -62,6 +62,13 @@ function NavbarComponent({ vistaActiva, setVistaActiva }) {
             </Nav.Link>
             <Nav.Link
               href="#"
+              className={`nav-link-custom ${vistaActiva === 'remitos' ? 'active' : ''}`}
+              onClick={() => setVistaActiva('remitos')}
+            >
+              📦 Remitos
+            </Nav.Link>
+            <Nav.Link
+              href="#"
               className={`nav-link-custom ${vistaActiva === 'dashboard' ? 'active' : ''}`}
               onClick={() => setVistaActiva('dashboard')}
             >

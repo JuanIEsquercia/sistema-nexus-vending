@@ -6,6 +6,7 @@ import RegistroProductosOptimized from './components/forms/RegistroProductosOpti
 // import CargaProductosMaquina from './components/forms/CargaProductosMaquina'; // OCULTO TEMPORALMENTE
 import RegistroProveedores from './components/forms/RegistroProveedores';
 import Presupuestos from './components/forms/Presupuestos';
+import Remitos from './components/forms/Remitos';
 import Dashboard from './components/forms/Dashboard';
 
 function App() {
@@ -24,6 +25,8 @@ function App() {
       //   return <CargaProductosMaquina />; // OCULTO TEMPORALMENTE
       case 'presupuestos':
         return <Presupuestos />;
+      case 'remitos':
+        return <Remitos />;
       case 'dashboard':
         return <Dashboard />;
       default:
